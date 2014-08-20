@@ -1,0 +1,3 @@
+[submodule "libs/moderngpu"]
+	path = libs/moderngpu
+	url = https://github.com/zhou13/moderngpu
