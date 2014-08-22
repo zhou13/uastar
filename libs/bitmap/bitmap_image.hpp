@@ -2004,10 +2004,7 @@ public:
 
    void pen_width(const unsigned int& width)
    {
-      if ((width > 0) && (width < 4))
-      {
-         pen_width_ = width;
-      }
+       pen_width_ = width;
    }
 
    void pen_color(const unsigned char& red,

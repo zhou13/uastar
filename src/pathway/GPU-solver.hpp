@@ -8,7 +8,7 @@ class GPUPathwaySolver {
 public:
     GPUPathwaySolver(Pathway *pathway);
     void initialize();
-    void solve(real *optimal, vector<vec2> *solution);
+    void solve(float *optimal, vector<vec2> *solution);
 
 private:
     // Problem

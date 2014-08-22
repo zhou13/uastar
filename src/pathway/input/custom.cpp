@@ -1,17 +1,8 @@
 #include "pathway/input/custom.hpp"
 
 CustomPathwayInput::CustomPathwayInput(int height, int width)
-    : m_height(height), m_width(m_width)
+    : m_height(height), m_width(width)
 {
-    cin >> m_sx >> m_sy;
-    cin >> m_ex >> m_ey;
-
-    map.resize(m_height * m_width);
-    for (int i = 0; i < m_height; ++i) {
-        for (int j = 0; j < m_width; ++j) {
-            cin >> map[i * m_width + j];
-        }
-    }
 }
 
 CustomPathwayInput::~CustomPathwayInput()
@@ -33,7 +24,14 @@ void CustomPathwayInput::getEndPoint(int *x, int *y)
 
 void CustomPathwayInput::generate(uint8_t graph[])
 {
+    cin >> m_sx >> m_sy;
+    cin >> m_ex >> m_ey;
+
     uint8_t *buf = graph;
-    for (uint8_t v : map)
-        *buf++ = v ? 0xFF : 0;
+    for (int i = 0; i < m_height; ++i) {
+        for (int j = 0; j < m_width; ++j) {
+            int t; cin >> t;
+            *buf++ = t ? 0xFF : 0;
+        }
+    }
 }

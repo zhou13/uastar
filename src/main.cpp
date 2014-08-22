@@ -1,5 +1,6 @@
-#include <boost/format.hpp>
 #include <chrono>
+#include <boost/format.hpp>
+#include <boost/program_options.hpp>
 
 #include "utils.hpp"
 #include "pathway/pathway.hpp"
@@ -35,10 +36,12 @@ uAstar can solves two kinds of problems.
 
 )";
 
+namespace po = boost::program_options;
 static po::options_description desc("uAstar Options");
 
 po::variables_map vm_options;
 std::mt19937 random_engine;
+bool debug;
 
 void help()
 {
@@ -94,6 +97,9 @@ static void solve_problem(Problem &problem)
     }
 
     if (use_cpu || use_gpu) {
+        cout << time_pass(start_time)
+             << " Checking the result ......"
+             << endl;
         if (!problem.output()) {
             cout << time_pass(start_time)
                  << "ERROR: Output of the CPU and is not consistent!"
@@ -105,6 +111,9 @@ static void solve_problem(Problem &problem)
 
 int main(int argc, char *argv[])
 {
+    const char *env_debug = getenv("DEBUG");
+    debug = !!env_debug;
+
     desc.add_options()
         ("help,h", "Print usage message")
         ("pathway", "Solve pathway finding problem")
@@ -115,7 +124,7 @@ int main(int argc, char *argv[])
          "Choose how to generate the input data.\n"
          "For pathway finding:\n"
          "    custom    -- Fetch the graph from system IO\n"
-         "    random50  -- Random generated graph with 50\%\n"
+         "    random    -- Random generated graph with 50\%\n"
          "                 paths blocked"
          "\n"
          "For tile puzzle:\n"
@@ -123,13 +132,22 @@ int main(int argc, char *argv[])
          )
         ("plot,p", po::value<string>(),
          "Plot the path to a BMP image (only for --pathway)")
+        ("block-rate,b", po::value<int>(),
+         "Set the block rate (1-99) (only for random module)")
         ("no-cpu,G", "Do not run sequential CPU-based A* search")
         ("no-gpu,C", "Do not run GPU-accelerated A* search")
         ("seed,s", po::value<int>(), "Random seed of this run")
         ;
 
-    po::store(po::parse_command_line(argc, argv, desc), vm_options);
-    po::notify(vm_options);
+    try {
+        po::store(po::parse_command_line(argc, argv, desc), vm_options);
+        po::notify(vm_options);
+    } catch (std::exception &e) {
+        std::cerr << "error: " << e.what() << "\n";
+        return 1;
+    } catch (...) {
+        std::cerr << "Exception of unknown type!\n";
+    }
 
     if (argc == 1 || vm_options.count("help")) {
         help();

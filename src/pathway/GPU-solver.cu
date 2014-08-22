@@ -12,7 +12,7 @@ void GPUPathwaySolver::initialize()
     // pass
 }
 
-void GPUPathwaySolver::solve(real *optimal, vector<vec2> *solution)
+void GPUPathwaySolver::solve(float *optimal, vector<vec2> *solution)
 {
     // pass
 }

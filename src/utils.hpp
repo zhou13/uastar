@@ -17,7 +17,9 @@
 #if defined(__CUDACC__)
 #define BOOST_NOINLINE __attribute__ ((noinline))
 #endif
-#include <boost/program_options.hpp>
+
+#include <boost/program_options/variables_map.hpp>
+#include <boost/lexical_cast.hpp>
 
 // C++11 is not well supported by CUDA 5.5
 #ifndef NO_CPP11
@@ -26,22 +28,27 @@
 
 using std::cin;
 using std::cout;
+using std::flush;
+using std::min;
+using std::max;
 using std::endl;
 using std::pair;
 using std::runtime_error;
 using std::string;
 using std::vector;
 using std::make_pair;
+using boost::lexical_cast;
 
-namespace po = boost::program_options;
-
-extern po::variables_map vm_options;
 #ifndef NO_CPP11
 extern std::mt19937 random_engine;
 #endif
+extern boost::program_options::variables_map vm_options;
 extern void help();
+extern bool debug;
 
-typedef float real;
+#define dprintf(fmt, ...) \
+    do { if (DEBUG && debug) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
+#define dout if (!(DEBUG && debug)) {} else std::cerr
 
 // Suppose we only use x dimension
 #define TID (threadIdx.x)
@@ -65,7 +72,11 @@ union Float_t
     } parts;
 };
 
-bool float_equal(float A, float B, float maxDiff = 1e-3, int maxUlpsDiff = 200)
+inline bool float_equal(
+    float A,
+    float B,
+    float maxDiff = 1e-3,
+    int maxUlpsDiff = 200)
 {
     // Check if the numbers are really close -- needed
     // when comparing numbers near zero.

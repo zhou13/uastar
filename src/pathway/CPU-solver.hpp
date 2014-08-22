@@ -9,10 +9,10 @@
 
 struct node_t {
     int id;
-    real dist;
+    float dist;
     node_t *prev;
     node_t() = default;
-    node_t(int id, real dist, node_t *prev)
+    node_t(int id, float dist, node_t *prev)
         : id(id), dist(dist), prev(prev) { }
 };
 
@@ -21,13 +21,16 @@ public:
     CPUPathwaySolver(Pathway *pathway);
     ~CPUPathwaySolver();
     void initialize();
-    bool solve(real *optimal, vector<vec2> *solution);
+    bool solve(float *optimal, vector<vec2> *solution);
 
 private:
-    real computeFValue(node_t *node);
+    float computeFValue(node_t *node);
 
     Pathway *p;
-    std::priority_queue<pair<real, node_t *>> openList;
+    std::priority_queue<
+        pair<float, node_t *>,
+        vector<pair<float, node_t *>>,
+        std::greater<pair<float, node_t *>>> openList;
     std::unordered_set<int> closeList;
     std::unordered_map<int, node_t *> globalList;
 

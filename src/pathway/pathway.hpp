@@ -8,6 +8,10 @@
 class CPUPathwaySolver;
 class GPUPathwaySolver;
 
+const int  DX[8]   = { 1,  1, -1, -1,  1, -1,  0,  0 };
+const int  DY[8]   = { 1, -1,  1, -1,  0,  0,  1, -1 };
+const float COST[8] = { sqrt(2.), sqrt(2.f), sqrt(2.f), sqrt(2.f), 1, 1, 1, 1};
+
 class Pathway : public Problem {
 public:
     Pathway();
@@ -35,6 +39,9 @@ public:
 
 private:
     void generateGraph(PathwayInput &input);
+    void printSolution(const vector<vec2> &solution) const;
+    void plotSolution(const vector<vec2> &solution,
+                      const string filename) const;
 
     int m_sx;
     int m_sy;
@@ -50,12 +57,12 @@ private:
 
     bool cpuSolved;
     bool cpuSuccessful;
-    real cpuOptimal;
+    float cpuOptimal;
     vector<vec2> cpuSolution;
 
     bool gpuSolved;
     bool gpuSuccessful;
-    real gpuOptimal;
+    float gpuOptimal;
     vector<vec2> gpuSolution;
 };
 

@@ -12,12 +12,10 @@ public:
     void generate(uint8_t graph[]) override;
 
 protected:
-    int m_size;
-    int m_width;
     int m_height;
+    int m_width;
     int m_sx, m_sy;
     int m_ex, m_ey;
-    vector<uint8_t> map;
 };
 
 #endif /* end of include guard: __CUSTOM_HPP_JWMXQYT3 */
