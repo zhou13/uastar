@@ -67,8 +67,7 @@ void Pathway::cpuInitialize()
 
 void Pathway::gpuInitialize()
 {
-    return;
-    throw runtime_error("Not implemented");
+    gpuSolver->initialize();
 }
 
 void Pathway::cpuSolve()
@@ -79,8 +78,8 @@ void Pathway::cpuSolve()
 
 void Pathway::gpuSolve()
 {
-    return;
-    throw runtime_error("Not implemented");
+    gpuSuccessful = gpuSolver->solve(&gpuOptimal, &gpuSolution);
+    gpuSolved = true;
 }
 
 bool Pathway::output() const

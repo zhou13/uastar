@@ -8,7 +8,7 @@ __global__ void BlockSortKernel(Key *d_in, Key *d_out)
     int tid = threadIdx.x;
     Key key[VT];
 
-    __shared__ Key shared[NT*(VT+1)];
+    __shared__ Key shared[NT*VT+1];
 
     mgpu::DeviceGlobalToThread<NT, VT>(NT*VT, d_in, tid, key);
     mgpu::CTAMergesortKeys<NT, VT, false>(key, shared, VT*NT, tid, mgpu::less<int>());
@@ -19,19 +19,21 @@ int main(int argc, char *argv[])
 {
     mgpu::ContextPtr context = mgpu::CreateCudaDevice(argc, argv, true);
 
-    MGPU_MEM(int32_t) d_in  = context->GenRandom<int32_t>(128*3, 1, 100);
-    MGPU_MEM(int32_t) d_out = context->Malloc<int32_t>(128*3);
+    const int vt = 2;
+    MGPU_MEM(int32_t) d_in  = context->GenRandom<int32_t>(192 * vt, 1, 1000);
+    MGPU_MEM(int32_t) d_out = context->Malloc<int32_t>(192 * vt);
 
-    context->Start();
-    BlockSortKernel<128, 3, int32_t><<<1, 128>>>(*d_in, *d_out);
-    double elapsed = context->Split();
+    BlockSortKernel<192, vt, int32_t><<<1, 192>>>(*d_in, *d_out);
 
-    printf("Time elapsed: %.2f\n", elapsed);
+    // context->Start();
+    // double elapsed = context->Split();
 
-    puts("Input array: ");
-    mgpu::PrintArray(*d_in, "%6d", 10);
-    puts("Output array: ");
-    mgpu::PrintArray(*d_out, "%6d", 10);
+    // printf("Time elapsed: %.2f\n", elapsed);
+
+    // puts("Input array: ");
+    // mgpu::PrintArray(*d_in, "%6d", 12);
+    // puts("Output array: ");
+    // mgpu::PrintArray(*d_out, "%6d", 12);
 
     return 0;
 }

@@ -1,5 +1,14 @@
 #include "pathway/CPU-solver.hpp"
 
+struct node_t {
+    int id;
+    float dist;
+    node_t *prev;
+    node_t() = default;
+    node_t(int id, float dist, node_t *prev)
+        : id(id), dist(dist), prev(prev) { }
+};
+
 CPUPathwaySolver::CPUPathwaySolver(Pathway *pathway)
     : p(pathway)
 {
@@ -40,7 +49,7 @@ bool CPUPathwaySolver::solve(float *optimal, vector<vec2> *solution)
             openList.pop();
         } while (closeList.count(node->id));
         closeList.insert(node->id);
-        
+
         dout << p->toVec(node->id) << endl;
 
         if (node->id == targetID) {
@@ -85,5 +94,9 @@ bool CPUPathwaySolver::solve(float *optimal, vector<vec2> *solution)
 
 float CPUPathwaySolver::computeFValue(node_t *node)
 {
-    return node->dist + target.distance(p->toVec(node->id));
+    int x, y;
+    p->toXY(node->id, &x, &y);
+    int dx = abs(x - p->ex());
+    int dy = abs(y - p->ey());
+    return node->dist + min(dx, dy)*SQRT2 + abs(dx-dy);
 }

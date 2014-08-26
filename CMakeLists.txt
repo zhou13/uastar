@@ -6,7 +6,7 @@ find_package(Boost COMPONENTS program_options system REQUIRED)
 
 add_definitions("-std=c++1y")
 add_definitions("-Wall")
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -gencode arch=compute_35,code=sm_35)
+set(CUDA_NVCC_FLAGS_DEBUG ${CUDA_NVCC_FLAGS} -Xcompiler -rdynamic -lineinfo -gencode arch=compute_35,code=sm_35)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG -fsanitize=address")
 
 include_directories(libs/moderngpu/include)

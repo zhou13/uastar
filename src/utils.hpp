@@ -2,11 +2,13 @@
 #define __UASTAR_UTIL
 
 #include <algorithm>
+#include <cassert>
 #include <climits>
 #include <cmath>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <stdint.h>
@@ -37,6 +39,7 @@ using std::runtime_error;
 using std::string;
 using std::vector;
 using std::make_pair;
+using std::numeric_limits;
 using boost::lexical_cast;
 
 #ifndef NO_CPP11
@@ -50,10 +53,6 @@ extern bool debug;
     do { if (DEBUG && debug) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 #define dout if (!(DEBUG && debug)) {} else std::cerr
 
-// Suppose we only use x dimension
-#define TID (threadIdx.x)
-#define GID (THREAD_ID + NT * blockIdx.x)
-
 union Float_t
 {
     Float_t(float num = 0.0f) : f(num) {}
@@ -61,7 +60,7 @@ union Float_t
     bool Negative() const { return (i >> 31) != 0; }
     int32_t RawMantissa() const { return i & ((1 << 23) - 1); }
     int32_t RawExponent() const { return (i >> 23) & 0xFF; }
- 
+
     int32_t i;
     float f;
     struct
@@ -98,5 +97,19 @@ inline bool float_equal(
  
     return false;
 }
+
+#ifdef __CUDACC__
+#  define CUDA_FUNC __host__ __device__
+#  define CUDA_KERNEL __global__
+#else
+#  define CUDA_FUNC
+#  define CUDA_KERNEL
+#  define CUDA_SHARED
+#endif
+
+const float SQRT2 = 1.4142135623731;
+const int DX[8] = { 1,  1, -1, -1,  1, -1,  0,  0 };
+const int DY[8] = { 1, -1,  1, -1,  0,  0,  1, -1 };
+const float COST[8] = {SQRT2, SQRT2, SQRT2, SQRT2, 1, 1, 1, 1};
 
 #endif

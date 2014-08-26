@@ -102,7 +102,7 @@ static void solve_problem(Problem &problem)
              << endl;
         if (!problem.output()) {
             cout << time_pass(start_time)
-                 << "ERROR: Output of the CPU and is not consistent!"
+                 << "ERROR: Output of the CPU and GPU is not consistent!"
                  << endl;
             exit(1);
         }
@@ -136,6 +136,7 @@ int main(int argc, char *argv[])
          "Set the block rate (1-99) (only for random module)")
         ("no-cpu,G", "Do not run sequential CPU-based A* search")
         ("no-gpu,C", "Do not run GPU-accelerated A* search")
+        ("ordinal,o", po::value<int>(0), "Specify CUDA Ordinal")
         ("seed,s", po::value<int>(), "Random seed of this run")
         ;
 

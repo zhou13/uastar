@@ -8,10 +8,6 @@
 class CPUPathwaySolver;
 class GPUPathwaySolver;
 
-const int  DX[8]   = { 1,  1, -1, -1,  1, -1,  0,  0 };
-const int  DY[8]   = { 1, -1,  1, -1,  0,  0,  1, -1 };
-const float COST[8] = { sqrt(2.), sqrt(2.f), sqrt(2.f), sqrt(2.f), 1, 1, 1, 1};
-
 class Pathway : public Problem {
 public:
     Pathway();

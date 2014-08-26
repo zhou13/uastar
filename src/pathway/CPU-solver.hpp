@@ -7,15 +7,7 @@
 #include <unordered_set>
 #include <unordered_map>
 
-struct node_t {
-    int id;
-    float dist;
-    node_t *prev;
-    node_t() = default;
-    node_t(int id, float dist, node_t *prev)
-        : id(id), dist(dist), prev(prev) { }
-};
-
+class node_t;
 class CPUPathwaySolver {
 public:
     CPUPathwaySolver(Pathway *pathway);
