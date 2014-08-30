@@ -51,7 +51,7 @@ struct DeviceData {
     MGPU_MEM(int) optimalNodesSize;
 
     MGPU_MEM(uint32_t) lastAddr;
-    MGPU_MEM(uint32_t) answerID;
+    MGPU_MEM(uint32_t) answerList;
     MGPU_MEM(int) answerSize;
 
     ContextPtr context;
@@ -106,11 +106,12 @@ void GPUPathwaySolver::initialize()
     d->optimalNodesSize = d->context->Fill<int>(1, 0);
 
     d->lastAddr = d->context->Malloc<uint32_t>(1);
-    d->answerID = d->context->Malloc<uint32_t>(1);
+    d->answerList = d->context->Malloc<uint32_t>(ANSWER_LIST_SIZE);
     d->answerSize = d->context->Fill<int>(1, 0);
 
     kInitialize<<<1, 1>>>(
         *d->nodes,
+        *d->hash,
         *d->openList,
         *d->heapSize,
         p->sx(),
@@ -163,28 +164,29 @@ bool GPUPathwaySolver::solve(float *optimal, vector<vec2> *solution)
                 pq.push(optimalNodes[i]);
 
             if (flipFloat(pq.top().fValue) <= optimalDistance) {
+                dprintf("\t\t\t Target nodes address: %d\n", pq.top().addr);
                 d->lastAddr->FromHost(&pq.top().addr, 1);
                 kFetchAnswer<<<1, 1>>>(
                     *d->nodes,
 
                     *d->lastAddr,
 
-                    *d->answerID,
+                    *d->answerList,
                     *d->answerSize
                 );
+                cudaDeviceSynchronize();
 
                 int answerSize = d->answerSize->Value();
 
-                vector<uint32_t> answerID;
-                d->answerID->ToHost(answerID, answerSize);
+                vector<uint32_t> answerList;
+                d->answerList->ToHost(answerList, answerSize);
 
                 *optimal = reverseFlipFloat(optimalDistance);
                 solution->clear();
                 solution->reserve(answerSize);
                 for (int i = answerSize-1; i >= 0; --i) {
-                    solution->push_back(vec2(p->toVec(answerID[i])));
+                    solution->push_back(vec2(p->toVec(answerList[i])));
                 }
-                std::reverse(solution->begin(), solution->end());
 
                 return true;
             }
@@ -192,7 +194,10 @@ bool GPUPathwaySolver::solve(float *optimal, vector<vec2> *solution)
 
         dprintf("\t\tRound %d: Fetch sortListSize: ", round);
         int sortListSize = d->sortListSize->Value();
+        if (sortListSize == 0)
+            return false;
         dprintf("%d\n", sortListSize);
+
 
         dprintf("\t\tRound %d: MergesortPairs\n", round);
         MergesortPairs(
@@ -216,7 +221,7 @@ bool GPUPathwaySolver::solve(float *optimal, vector<vec2> *solution)
         cudaDeviceSynchronize();  // TODO REMOVE
 
         dprintf("\t\tRound %d: Fetch sortListSize2: ", round);
-        int sortListSize2 = d->sortListSize->Value();
+        int sortListSize2 = d->sortListSize2->Value();
         dprintf("%d\n", sortListSize2);
 
         dprintf("\t\tRound %d: kDeduplicate\n", round);
@@ -255,9 +260,6 @@ bool GPUPathwaySolver::solve(float *optimal, vector<vec2> *solution)
             );
         cudaDeviceSynchronize(); // TODO REMOVE
         dprintf("\t\tRound %d: Finished\n\n", round);
-
-        if (round > 5) // TODO: REMOVE THIS!!!!
-            return false;
     }
 }
 

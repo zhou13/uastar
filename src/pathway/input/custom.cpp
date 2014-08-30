@@ -3,23 +3,12 @@
 CustomPathwayInput::CustomPathwayInput(int height, int width)
     : m_height(height), m_width(width)
 {
+    // pass
 }
 
 CustomPathwayInput::~CustomPathwayInput()
 {
     // pass
-}
-
-void CustomPathwayInput::getStartPoint(int *x, int *y)
-{
-    *x = m_sx;
-    *y = m_sy;
-}
-
-void CustomPathwayInput::getEndPoint(int *x, int *y)
-{
-    *x = m_ex;
-    *y = m_ey;
 }
 
 void CustomPathwayInput::generate(uint8_t graph[])
@@ -34,4 +23,16 @@ void CustomPathwayInput::generate(uint8_t graph[])
             *buf++ = t ? 0xFF : 0;
         }
     }
+}
+
+void CustomPathwayInput::getStartPoint(int *x, int *y)
+{
+    *x = m_sx;
+    *y = m_sy;
+}
+
+void CustomPathwayInput::getEndPoint(int *x, int *y)
+{
+    *x = m_ex;
+    *y = m_ey;
 }

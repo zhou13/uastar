@@ -14,6 +14,8 @@
 #define GLOBAL_ID (THREAD_ID + NT * blockIdx.x)
 #define BLOCK_ID  (blockIdx.x)
 
+#define KERNEL_LOG
+
 using namespace mgpu;
 
 struct heap_t {
@@ -132,6 +134,7 @@ inline cudaError_t updateModules(const vector<uint32_t> &mvec)
 
 __global__ void kInitialize(
     node_t g_nodes[],
+    uint32_t g_hash[],
     heap_t g_openList[],
     int g_heapSize[],
     int startX,
@@ -151,6 +154,7 @@ __global__ void kInitialize(
     g_nodes[0] = node;
     g_openList[0] = heap;
     g_heapSize[0] = 1;
+    g_hash[node.nodeID] = 0;
 }
 
 // NB: number of CUDA block
@@ -209,11 +213,12 @@ __global__ void kExtractExpand(
         atomicMin(&s_optimalDistance, flipFloat(extracted[k].fValue));
         popCount++;
 
-        // TODO: REMOVE
+#ifdef KERNEL_LOG
         int x, y;
         idToXY(g_nodes[extracted[k].addr].nodeID, &x, &y);
-        printf("\t\t\t[%d]: Extract %d (%d, %d) in %d\n",
-               gid, extracted[k].addr, x, y, extracted[k].addr);
+        printf("\t\t\t[%d]: Extract (%d, %d) in [%d]\n",
+               gid, x, y, extracted[k].addr);
+#endif
 
         heap_t nowValue = heap[heapSize--];
 
@@ -277,11 +282,15 @@ __global__ void kExtractExpand(
             int index = k*8 + i;
             if (inrange(nx, ny)) {
                 uint32_t nodeID = xyToID(nx, ny);
-                printf("\t\t\t[%d]: Expand (%d, %d) from %d\n",
-                       gid, nx, ny, node.nodeID);
+#ifdef KERNEL_LOG
+                int px, py;
+                idToXY(node.nodeID, &px, &py);
+                printf("\t\t\t[%d]: Expand (%d, %d) from (%d, %d)\n",
+                       gid, nx, ny, px, py);
+#endif
                 sortList[index].nodeID = nodeID;
                 sortList[index].gValue = node.gValue + COST[i];
-                prevList[index] = node.nodeID;
+                prevList[index] = extracted[k].addr;
                 valid[index] = true;
                 ++sortListCount;
             }
@@ -365,11 +374,12 @@ __global__ void kAssign(
         g_sortList2[s_sortListBase2 + index] = sort;
         g_prevList2[s_sortListBase2 + index] = prev;
 
-        // TODO: REMOVE
+#ifdef KERNEL_LOG
         int x, y;
         idToXY(sort.nodeID, &x, &y);
-        printf("\t\t\t[%d]: Assign (%d %d)[%.2f] from %d\n",
+        printf("\t\t\t[%d]: Assign (%d %d){%.2f} from %d\n",
                gid, x, y, sort.gValue, prev);
+#endif
     }
 }
 
@@ -445,6 +455,12 @@ __global__ void kDeduplicate(
 
     uint32_t globalAddr = s_nodeInsertBase + nodeIndex;
     if (working && !found) {
+#ifdef KERNEL_LOG
+        int x, y;
+        idToXY(node.nodeID, &x, &y);
+        printf("\t\t\t[%d]: Store (%d, %d) to [%d]\n", gid, x, y, globalAddr);
+#endif
+        g_hash[node.nodeID] = globalAddr;
         g_nodes[globalAddr] = node;
     }
     if (working && insert) {
@@ -479,11 +495,17 @@ __global__ void kHeapInsert(
         heapIndex -= NB*NT;
 
     int heapSize = g_heapSize[heapIndex];
-    heap_t *heap = g_openList + HEAP_CAPACITY * gid - 1;
+    heap_t *heap = g_openList + HEAP_CAPACITY * heapIndex - 1;
 
     for (int i = gid; i < heapInsertSize; i += NB*NT) {
         heap_t value = g_heapInsertList[i];
         int now = ++heapSize;
+
+#ifdef KERNEL_LOG
+        printf("\t\t\t[%d]: Push [%d] to heap %d\n",
+               gid, value.addr, heapIndex);
+#endif
+
         while (now > 1) {
             int next = now / 2;
             heap_t nextValue = heap[next];
@@ -510,17 +532,27 @@ __global__ void kFetchAnswer(
 
     uint32_t *lastAddr,
 
-    uint32_t answerID[],
-    int *answerSize
+    uint32_t answerList[],
+    int *g_answerSize
 )
 {
     int count = 0;
     int addr = *lastAddr;
 
     while (addr != UINT32_MAX) {
-        answerID[count++] = g_nodes[addr].nodeID;
+        if (count > 10)
+            break;
+
+#ifdef KERNEL_LOG
+        int x, y;
+        idToXY(g_nodes[addr].nodeID, &x, &y);
+        printf("\t\t\t Address: %d (%d, %d)\n", addr, x, y);
+#endif
+        answerList[count++] = g_nodes[addr].nodeID;
         addr = g_nodes[addr].prev;
     }
+
+    *g_answerSize = count;
 }
 
 #endif /* end of include guard: __GPU_KERNEL_CUH_IUGANILK */

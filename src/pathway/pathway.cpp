@@ -2,6 +2,7 @@
 
 #include "pathway/pathway.hpp"
 #include "pathway/input/custom.hpp"
+#include "pathway/input/zigzag.hpp"
 #include "pathway/CPU-solver.hpp"
 #include "pathway/GPU-solver.hpp"
 
@@ -51,6 +52,9 @@ void Pathway::prepare()
     m_graph.resize(m_size);
     if (m_inputModule == "custom") {
         CustomPathwayInput input(m_height, m_width);
+        generateGraph(input);
+    } else if (m_inputModule == "zigzag") {
+        ZigzagPathwayInput input(m_height, m_width);
         generateGraph(input);
     } else {
         cout << "Please set your input-module parameter correctly." << endl

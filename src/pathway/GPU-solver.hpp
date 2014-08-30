@@ -6,6 +6,7 @@
 
 const int OPEN_LIST_SIZE = 1000000;
 const int NODE_LIST_SIZE = OPEN_LIST_SIZE * 10;
+const int ANSWER_LIST_SIZE = 100000;
 
 const int NUM_BLOCK  = 13 * 2;
 const int NUM_THREAD = 192 * 2;

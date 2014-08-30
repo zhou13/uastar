@@ -27,6 +27,7 @@ cuda_add_executable(
     src/pathway/CPU-solver.cpp
     src/pathway/GPU-solver.cu
     src/pathway/input/custom.cpp
+    src/pathway/input/zigzag.cpp
     src/puzzle/puzzle.cpp
     ${moderngpu_source}
 )

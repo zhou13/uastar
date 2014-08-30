@@ -124,6 +124,8 @@ int main(int argc, char *argv[])
          "Choose how to generate the input data.\n"
          "For pathway finding:\n"
          "    custom    -- Fetch the graph from system IO\n"
+         "    zigzag    -- A kind of graph such that the optimal\n"
+         "                 solution is a zig-zag path\n"
          "    random    -- Random generated graph with 50\%\n"
          "                 paths blocked"
          "\n"
