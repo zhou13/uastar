@@ -22,6 +22,7 @@
 
 #include <boost/program_options/variables_map.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/random.hpp>
 
 // C++11 is not well supported by CUDA 5.5
 #ifndef NO_CPP11
@@ -43,15 +44,22 @@ using std::numeric_limits;
 using boost::lexical_cast;
 
 #ifndef NO_CPP11
-extern std::mt19937 random_engine;
+extern boost::mt19937 random_engine;
 #endif
 extern boost::program_options::variables_map vm_options;
 extern void help();
 extern bool debug;
 
+#define DEBUG_CONDITION (DEBUG && debug)
 #define dprintf(fmt, ...) \
-    do { if (DEBUG && debug) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
-#define dout if (!(DEBUG && debug)) {} else std::cerr
+    do { \
+        if (DEBUG_CONDITION) { \
+            fprintf(stderr, fmt, __VA_ARGS__); \
+            fflush(stderr); \
+        } \
+    } while (0)
+
+#define dout if (!DEBUG_CONDITION) {} else std::cerr
 
 union Float_t
 {
@@ -74,7 +82,7 @@ union Float_t
 inline bool float_equal(
     float A,
     float B,
-    float maxDiff = 1e-3,
+    float maxDiff = 1e-3f,
     int maxUlpsDiff = 200)
 {
     // Check if the numbers are really close -- needed
@@ -82,19 +90,19 @@ inline bool float_equal(
     float absDiff = fabs(A - B);
     if (absDiff <= maxDiff)
         return true;
- 
+
     Float_t uA(A);
     Float_t uB(B);
- 
+
     // Different signs means they do not match.
     if (uA.Negative() != uB.Negative())
         return false;
- 
+
     // Find the difference in ULPs.
     int ulpsDiff = abs(uA.i - uB.i);
     if (ulpsDiff <= maxUlpsDiff)
         return true;
- 
+
     return false;
 }
 
@@ -107,7 +115,7 @@ inline bool float_equal(
 #  define CUDA_SHARED
 #endif
 
-const float SQRT2 = 1.4142135623731;
+const float SQRT2 = 1.4142135623731f;
 const int DX[8] = { 1,  1, -1, -1,  1, -1,  0,  0 };
 const int DY[8] = { 1, -1,  1, -1,  0,  0,  1, -1 };
 const float COST[8] = {SQRT2, SQRT2, SQRT2, SQRT2, 1, 1, 1, 1};

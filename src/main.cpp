@@ -15,7 +15,7 @@ uAstar can solves two kinds of problems.
 (1)  Find the shortest path on a 8-direction grid network(graph).
      We use a very compact graph representation in a way such that
      we can solve the problem with up to 1x10^9 nodes.
-     
+
      EXAMPLE (manually input graph through IO):
          ./uastar --pathway -H 5 -W 5 --input-module custom
          > 0 0 4 4     # find path from (0, 0) to (4, 4)
@@ -40,7 +40,7 @@ namespace po = boost::program_options;
 static po::options_description desc("uAstar Options");
 
 po::variables_map vm_options;
-std::mt19937 random_engine;
+boost::mt19937 random_engine;
 bool debug;
 
 void help()
@@ -102,7 +102,7 @@ static void solve_problem(Problem &problem)
              << endl;
         if (!problem.output()) {
             cout << time_pass(start_time)
-                 << "ERROR: Output of the CPU and GPU is not consistent!"
+                 << " ERROR: Output of the CPU and GPU is not consistent!"
                  << endl;
             exit(1);
         }
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
          "Set the block rate (1-99) (only for random module)")
         ("no-cpu,G", "Do not run sequential CPU-based A* search")
         ("no-gpu,C", "Do not run GPU-accelerated A* search")
-        ("ordinal,o", po::value<int>(0), "Specify CUDA Ordinal")
+        ("ordinal,o", po::value<int>()->default_value(0), "Specify CUDA Ordinal")
         ("seed,s", po::value<int>(), "Random seed of this run")
         ;
 

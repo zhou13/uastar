@@ -5,9 +5,8 @@ find_package(CUDA REQUIRED)
 find_package(Boost COMPONENTS program_options system REQUIRED)
 
 add_definitions("-std=c++1y")
-add_definitions("-Wall")
-set(CUDA_NVCC_FLAGS_DEBUG ${CUDA_NVCC_FLAGS} -Xcompiler -rdynamic -lineinfo -gencode arch=compute_35,code=sm_35)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG -fsanitize=address")
+set(CUDA_NVCC_FLAGS_DEBUG ${CUDA_NVCC_FLAGS_DEBUG} -lineinfo -gencode arch=compute_35,code=sm_35 --ptxas-options -v )
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -rdynamic -Wall -DDEBUG -fsanitize=address")
 
 include_directories(libs/moderngpu/include)
 include_directories(libs/bitmap)
@@ -20,12 +19,6 @@ set(
     libs/moderngpu/src/mgpucontext.cu
     libs/moderngpu/src/mgpuutil.cpp
 )
-set_source_files_properties(
-    libs/moderngpu/src/mgpucontext.cu
-    PROPERTIES COMPILE_FLAGS -Wno-all)
-set_source_files_properties(
-    libs/moderngpu/src/mgpuutil.cpp
-    PROPERTIES COMPILE_FLAGS -Wno-all)
 
 cuda_add_executable(
     uastar
