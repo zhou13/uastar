@@ -1,7 +1,6 @@
 #ifndef __UASTAR_PATHWAY
 #define __UASTAR_PATHWAY
 
-#include "vec2.hpp"
 #include "problem.hpp"
 #include "pathway/input.hpp"
 
@@ -18,7 +17,7 @@ public:
     void gpuInitialize();
     void cpuSolve();
     void gpuSolve();
-    bool output() const;
+    bool output();
 
     int sx() const;
     int sy() const;
@@ -29,14 +28,14 @@ public:
     int height() const;
     int toID(int x, int y) const;
     void toXY(int id, int *x, int *y) const;
-    vec2 toVec(int id) const;
     bool inrange(int x, int y) const;
     const uint8_t *graph() const;
 
 private:
     void generateGraph(PathwayInput &input);
-    void printSolution(const vector<vec2> &solution) const;
-    void plotSolution(const vector<vec2> &solution,
+    void printSolution(const vector<int> &pathList,
+                       const string filename) const;
+    void plotSolution(const vector<int> &pathList,
                       const string filename) const;
 
     int m_sx;
@@ -54,12 +53,12 @@ private:
     bool cpuSolved;
     bool cpuSuccessful;
     float cpuOptimal;
-    vector<vec2> cpuSolution;
+    vector<int> cpuSolution;
 
     bool gpuSolved;
     bool gpuSuccessful;
     float gpuOptimal;
-    vector<vec2> gpuSolution;
+    vector<int> gpuSolution;
 };
 
 inline int Pathway::sx() const
@@ -106,11 +105,6 @@ inline void Pathway::toXY(int id, int *x, int *y) const
 {
     *x = id / width();
     *y = id % width();
-}
-
-inline vec2 Pathway::toVec(int id) const
-{
-    return vec2(id / width(), id % width());
 }
 
 inline bool Pathway::inrange(int x, int y) const

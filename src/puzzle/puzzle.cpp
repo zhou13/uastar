@@ -40,7 +40,7 @@ void Puzzle::gpuSolve()
     throw runtime_error("Not implemented");
 }
 
-bool Puzzle::output() const
+bool Puzzle::output()
 {
     throw runtime_error("Not implemented");
 }

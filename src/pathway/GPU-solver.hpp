@@ -2,14 +2,13 @@
 #define __GPU_SOLVER_HPP_1LYUPTGF
 
 #include "pathway/pathway.hpp"
-#include "vec2.hpp"
 
-const int OPEN_LIST_SIZE = 1000000;
-const int NODE_LIST_SIZE = OPEN_LIST_SIZE * 10;
-const int ANSWER_LIST_SIZE = 100000;
+const int OPEN_LIST_SIZE = 10000000;
+const int NODE_LIST_SIZE = 150000000;
+const int ANSWER_LIST_SIZE = 50000;
 
-const int NUM_BLOCK  = 13 * 2;
-const int NUM_THREAD = 192 * 2;
+const int NUM_BLOCK  = 13 * 3;
+const int NUM_THREAD = 192;
 const int NUM_TOTAL = NUM_BLOCK * NUM_THREAD;
 
 const int VALUE_PER_THREAD = 1;
@@ -23,7 +22,8 @@ public:
     GPUPathwaySolver(Pathway *pathway);
     ~GPUPathwaySolver();
     void initialize();
-    bool solve(float *optimal, vector<vec2> *solution);
+    bool solve();
+    void getSolution(float *optimal, vector<int> *pathList);
 
 private:
     bool isPrime(uint32_t number);
@@ -31,6 +31,8 @@ private:
     // Problem
     Pathway *p;
     DeviceData *d;
+    uint32_t m_optimalNodeAddr;
+    float m_optimalDistance;
 };
 
 #endif /* end of include guard: __GPU_SOLVER_HPP_1LYUPTGF */

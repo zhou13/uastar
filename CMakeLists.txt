@@ -7,6 +7,8 @@ find_package(Boost COMPONENTS program_options system REQUIRED)
 add_definitions("-std=c++1y")
 set(CUDA_NVCC_FLAGS_DEBUG ${CUDA_NVCC_FLAGS_DEBUG} -lineinfo -gencode arch=compute_35,code=sm_35 --ptxas-options -v )
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -rdynamic -Wall -DDEBUG -fsanitize=address")
+set(CUDA_NVCC_FLAGS_RELEASE ${CUDA_NVCC_FLAGS_RELEASE} -O2 -gencode arch=compute_35,code=sm_35 --ptxas-options -v)
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
 
 include_directories(libs/moderngpu/include)
 include_directories(libs/bitmap)

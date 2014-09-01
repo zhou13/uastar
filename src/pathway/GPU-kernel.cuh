@@ -14,7 +14,13 @@
 #define GLOBAL_ID (THREAD_ID + NT * blockIdx.x)
 #define BLOCK_ID  (blockIdx.x)
 
-#define KERNEL_LOG
+#define cudaAssert(X) \
+    if ( !(X) ) { \
+        printf( "Thread %d:%d failed assert at %s:%d!\n", \
+                blockIdx.x, threadIdx.x, __FILE__, __LINE__ ); \
+        return; \
+    }
+// #define KERNEL_LOG
 
 using namespace mgpu;
 
@@ -182,8 +188,8 @@ __global__ void kExtractExpand(
     int *g_sortListSize,
 
     // cleanup
-    int *heapBeginIndex,
-    int *heapInsertSize
+    int *g_heapBeginIndex,
+    int *g_heapInsertSize
 )
 {
     __shared__ uint32_t s_optimalDistance;
@@ -198,6 +204,8 @@ __global__ void kExtractExpand(
         s_sortListBase = 0;
     }
 
+    __syncthreads();
+
     heap_t *heap = g_openList + HEAP_CAPACITY * gid - 1;
 
     heap_t extracted[VT];
@@ -210,14 +218,13 @@ __global__ void kExtractExpand(
             break;
 
         extracted[k] = heap[1];
-        atomicMin(&s_optimalDistance, flipFloat(extracted[k].fValue));
         popCount++;
 
 #ifdef KERNEL_LOG
         int x, y;
         idToXY(g_nodes[extracted[k].addr].nodeID, &x, &y);
-        printf("\t\t\t[%d]: Extract (%d, %d) in [%d]\n",
-               gid, x, y, extracted[k].addr);
+        printf("\t\t\t[%d]: Extract (%d, %d){%.2f} in [%d]\n",
+               gid, x, y, extracted[k].fValue, extracted[k].addr);
 #endif
 
         heap_t nowValue = heap[heapSize--];
@@ -261,6 +268,7 @@ __global__ void kExtractExpand(
 
         if (k >= popCount)
             continue;
+        atomicMin(&s_optimalDistance, flipFloat(extracted[k].fValue));
         node_t node = g_nodes[extracted[k].addr];
         if (extracted[k].fValue != node.fValue)
             continue;
@@ -268,6 +276,10 @@ __global__ void kExtractExpand(
         if (node.nodeID == d_targetID) {
             int index = atomicAdd(g_optimalNodesSize, 1);
             g_optimalNodes[index] = extracted[k];
+#ifdef KERNEL_LOG
+            printf("\t\t\t Saved answer {%.3f}\n", extracted[k].fValue);
+#endif
+            continue;
         }
 
         int x, y;
@@ -315,8 +327,10 @@ __global__ void kExtractExpand(
     if (tid == 0)
         atomicMin(g_optimalDistance, s_optimalDistance);
     if (gid == 0) {
-        *heapBeginIndex += *heapInsertSize;
-        *heapInsertSize = 0;
+        int newHeapBeginIndex = *g_heapBeginIndex + *g_heapInsertSize;
+
+        *g_heapBeginIndex = newHeapBeginIndex % (NB*NT);
+        *g_heapInsertSize = 0;
     }
 }
 
@@ -414,12 +428,14 @@ __global__ void kDeduplicate(
         s_nodeInsertCount = 0;
         s_heapInsertCount = 0;
     }
+    __syncthreads();
 
     node_t node;
     bool insert = true;
-    bool found;
+    bool found = true;
     uint32_t nodeIndex;
     uint32_t heapIndex;
+    uint32_t addr;
 
     if (working) {
         node.nodeID = g_sortList[gid].nodeID;
@@ -427,12 +443,13 @@ __global__ void kDeduplicate(
         node.prev   = g_prevList[gid];
         node.fValue = node.gValue + computeHValue(node.nodeID);
 
-        uint32_t addr = g_hash[node.nodeID];
+        // cudaAssert((int)node.nodeID >= 0);
+        addr = g_hash[node.nodeID];
         found = (addr != UINT32_MAX);
 
         if (found) {
             if (node.fValue < g_nodes[addr].fValue) {
-                g_nodes[addr].fValue = node.fValue;
+                g_nodes[addr] = node;
             } else {
                 insert = false;
             }
@@ -453,20 +470,20 @@ __global__ void kDeduplicate(
     }
     __syncthreads();
 
-    uint32_t globalAddr = s_nodeInsertBase + nodeIndex;
     if (working && !found) {
+        addr = s_nodeInsertBase + nodeIndex;
 #ifdef KERNEL_LOG
         int x, y;
         idToXY(node.nodeID, &x, &y);
-        printf("\t\t\t[%d]: Store (%d, %d) to [%d]\n", gid, x, y, globalAddr);
+        printf("\t\t\t[%d]: Store (%d, %d) to [%d]\n", gid, x, y, addr);
 #endif
-        g_hash[node.nodeID] = globalAddr;
-        g_nodes[globalAddr] = node;
+        g_hash[node.nodeID] = addr;
+        g_nodes[addr] = node;
     }
     if (working && insert) {
         uint32_t index = s_heapInsertBase + heapIndex;
         g_heapInsertList[index].fValue = node.fValue;
-        g_heapInsertList[index].addr = globalAddr;
+        g_heapInsertList[index].addr = addr;
     }
 }
 
@@ -505,7 +522,6 @@ __global__ void kHeapInsert(
         printf("\t\t\t[%d]: Push [%d] to heap %d\n",
                gid, value.addr, heapIndex);
 #endif
-
         while (now > 1) {
             int next = now / 2;
             heap_t nextValue = heap[next];
@@ -540,9 +556,6 @@ __global__ void kFetchAnswer(
     int addr = *lastAddr;
 
     while (addr != UINT32_MAX) {
-        if (count > 10)
-            break;
-
 #ifdef KERNEL_LOG
         int x, y;
         idToXY(g_nodes[addr].nodeID, &x, &y);

@@ -31,7 +31,6 @@ void CPUPathwaySolver::initialize()
     openList = decltype(openList)();
     closeList.clear();
 
-    target = vec2(p->ex(), p->ey());
     targetID = p->toID(p->ex(), p->ey());
 
     int startID = p->toID(p->sx(), p->sy());
@@ -40,7 +39,7 @@ void CPUPathwaySolver::initialize()
     globalList[startNode->id] = startNode;
 }
 
-bool CPUPathwaySolver::solve(float *optimal, vector<vec2> *solution)
+bool CPUPathwaySolver::solve()
 {
     while (!openList.empty()) {
         node_t *node;
@@ -50,21 +49,14 @@ bool CPUPathwaySolver::solve(float *optimal, vector<vec2> *solution)
         } while (closeList.count(node->id));
         closeList.insert(node->id);
 
-        dout << p->toVec(node->id) << endl;
-
         if (node->id == targetID) {
-            *optimal = node->dist;
-            solution->clear();
-            while (node) {
-                solution->push_back(p->toVec(node->id));
-                node = node->prev;
-            }
-            std::reverse(solution->begin(), solution->end());
+            optimalNode = node;
             return true;
         }
 
         int x, y;
         p->toXY(node->id, &x, &y);
+        dout << "(" << x << ", " << y << ")" << endl;
         for (int i = 0; i < 8; ++i) {
             if (~p->graph()[node->id] & 1 << i)
                 continue;
@@ -77,19 +69,33 @@ bool CPUPathwaySolver::solve(float *optimal, vector<vec2> *solution)
                     node_t *nnode = new node_t(nid, dist, node);
                     globalList[nid] = nnode;
                     openList.push(make_pair(computeFValue(nnode), nnode));
-                    dout << '\t' << vec2(nx, ny) << " n " << computeFValue(nnode) << endl;
+                    dout << "\t(" << nx << ", " << ny << ") n " << computeFValue(nnode) << endl;
                 } else {
                     node_t *onode = globalList[nid];
                     if (dist < onode->dist) {
                         onode->dist = dist;
+                        onode->prev = node;
                         openList.push(make_pair(computeFValue(onode), onode));
-                        dout << '\t' << vec2(nx, ny) << " u " << computeFValue(onode) << endl;
+                        dout << '\t' << nx << " " << ny << " u " << computeFValue(onode) << endl;
                     }
                 }
             }
         }
     }
     return false;
+}
+
+void CPUPathwaySolver::getSolution(float *optimal, vector<int> *pathList)
+{
+    printf("\t\t\t Number of nodes expanded: %d\n", (int)globalList.size());
+    node_t *node = optimalNode;
+    *optimal = node->dist;
+    pathList->clear();
+    while (node) {
+        pathList->push_back(node->id);
+        node = node->prev;
+    }
+    std::reverse(pathList->begin(), pathList->end());
 }
 
 float CPUPathwaySolver::computeFValue(node_t *node)

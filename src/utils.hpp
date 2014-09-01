@@ -50,6 +50,9 @@ extern boost::program_options::variables_map vm_options;
 extern void help();
 extern bool debug;
 
+#ifndef DEBUG
+#  define DEBUG 0
+#endif
 #define DEBUG_CONDITION (DEBUG && debug)
 #define dprintf(fmt, ...) \
     do { \

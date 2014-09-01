@@ -24,7 +24,7 @@ void ZigzagPathwayInput::generate(uint8_t graph[])
     bool left = false;
     uint8_t *buf = graph;
     for (int i = 0; i < m_height; ++i) {
-        if (i % heightGap == 0) {
+        if (i && i % heightGap == 0) {
             if (left)
                 *buf++ = 0xFF;
             for (int j = 0; j < m_width-1; ++j)

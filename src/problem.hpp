@@ -20,7 +20,7 @@ public:
     virtual void gpuSolve() = 0;
     // Print the output.  Return whether the CPU's solution and the GPU's
     // solution is consistent.
-    virtual bool output() const = 0;
+    virtual bool output() = 0;
 };
 
 #endif

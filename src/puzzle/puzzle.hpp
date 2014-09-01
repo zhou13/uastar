@@ -13,7 +13,7 @@ public:
     void gpuInitialize() override;
     void cpuSolve() override;
     void gpuSolve() override;
-    bool output() const override;
+    bool output() override;
 private:
 };
 

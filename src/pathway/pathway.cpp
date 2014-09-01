@@ -76,30 +76,27 @@ void Pathway::gpuInitialize()
 
 void Pathway::cpuSolve()
 {
-    cpuSuccessful = cpuSolver->solve(&cpuOptimal, &cpuSolution);
+    cpuSuccessful = cpuSolver->solve();
     cpuSolved = true;
 }
 
 void Pathway::gpuSolve()
 {
-    gpuSuccessful = gpuSolver->solve(&gpuOptimal, &gpuSolution);
+    gpuSuccessful = gpuSolver->solve();
     gpuSolved = true;
 }
 
-bool Pathway::output() const
+bool Pathway::output()
 {
     if (cpuSolved && gpuSolved) {
         if (cpuSuccessful != gpuSuccessful)
-            return false;
-        if (!float_equal(cpuOptimal, gpuOptimal))
             return false;
     }
 
     if (cpuSolved) {
         if (cpuSuccessful) {
-            cout << "Solution from CPU:" << endl;
-            printSolution(cpuSolution);
-            cout << endl;
+            cpuSolver->getSolution(&cpuOptimal, &cpuSolution);
+            printSolution(cpuSolution, "solutionCPU.txt");
         } else {
             cout << "No solution from CPU." << endl;
         }
@@ -107,9 +104,8 @@ bool Pathway::output() const
 
     if (gpuSolved) {
         if (gpuSuccessful) {
-            cout << "Solution from GPU:" << endl;
-            printSolution(gpuSolution);
-            cout << endl;
+            gpuSolver->getSolution(&gpuOptimal, &gpuSolution);
+            printSolution(gpuSolution, "solutionGPU.txt");
         } else {
             cout << "No solution from GPU." << endl;
         }
@@ -122,6 +118,12 @@ bool Pathway::output() const
     if (gpuSuccessful) {
         printf(" > Optimal distance from GPU: %.3f\n", gpuOptimal);
         plotSolution(gpuSolution, "pathwayGPU.bmp");
+    }
+    plotSolution(vector<int>(), "pathway.bmp");
+
+    if (cpuSolved && gpuSolved) {
+        if (!float_equal(cpuOptimal, gpuOptimal))
+            return false;
     }
 
     return true;
@@ -136,25 +138,46 @@ void Pathway::generateGraph(PathwayInput &input)
     input.getEndPoint(&m_ex, &m_ey);
 }
 
-void Pathway::printSolution(const vector<vec2> &solution) const
+void Pathway::printSolution(const vector<int> &pathList,
+                            const string filename) const
 {
-    int count = 0;
-    printf("\t");
-    for (auto &v : solution) {
-        if (count)
-            printf(" -> ");
-        if (++count % 10 == 0) {
-            printf("\n\t");
-        }
-        printf("(%d %d)", v.x, v.y);
+    FILE *fout = fopen(filename.c_str(), "w");
+
+    if (!fout) {
+        printf("ERROR: %s cannot be open for writting.", filename.c_str());
+        return;
     }
+
+    int px, py;
+    int count = 0;
+    int count1 = 0;
+    int count2 = 0;
+    for (int v : pathList) {
+        if (count)
+            fprintf(fout, " -> ");
+        if (++count % 6 == 0) {
+            fprintf(fout, "\n\t");
+        }
+        int x, y;
+        toXY(v, &x, &y);
+        if (abs(px-x) + abs(py-y) == 2)
+            count2++;
+        else
+            count1++;
+        px = x;
+        py = y;
+        fprintf(fout, "(%d %d)", x, y);
+    }
+
+    printf(" > Number of -: %d, +: %d\n", count1, count2);
+    fclose(fout);
 }
 
-void Pathway::plotSolution(const vector<vec2> &solution,
+void Pathway::plotSolution(const vector<int> &pathList,
                            const string filename) const
 {
     int pixel_size = min(1024 / 3 / width(), 768 / 3 / height());
-    if (pixel_size == 0) {
+    if (pixel_size < 4) {
         puts("Warning:  too small pixel to plot");
         return;
     }
@@ -177,15 +200,20 @@ void Pathway::plotSolution(const vector<vec2> &solution,
         }
 
     // draw visited nodes
-    for (const vec2 &v : solution)
-        drawPixel(image, pixel_size, 3 * v.x + 1, 3 * v.y + 1, 0, 255, 0);
+    for (int v : pathList) {
+        int x, y;
+        toXY(v, &x, &y);
+        drawPixel(image, pixel_size, 3*x + 1, 3*y + 1, 0, 255, 0);
+    }
     // draw edge
-    for (int i = 0; i < (int)solution.size() - 1; ++i) {
-        const vec2 &a = solution[i];
-        const vec2 &b = solution[i+1];
-        const vec2 d = a-b;
-        drawPixel(image, pixel_size, 3*a.x+1-d.x, 3*a.y+1-d.y, 0, 255, 0);
-        drawPixel(image, pixel_size, 3*b.x+1+d.x, 3*b.y+1+d.y, 0, 255, 0);
+    for (int i = 0; i < (int)pathList.size() - 1; ++i) {
+        int ax, ay, bx, by, dx, dy;
+        toXY(pathList[i], &ax, &ay);
+        toXY(pathList[i+1], &bx, &by);
+        dx = ax - bx;
+        dy = ay - by;
+        drawPixel(image, pixel_size, 3*ax+1-dx, 3*ay+1-dy, 0, 255, 0);
+        drawPixel(image, pixel_size, 3*bx+1+dx, 3*by+1+dy, 0, 255, 0);
     }
 
     image_drawer drawer(image);
