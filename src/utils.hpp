@@ -41,6 +41,7 @@ using std::string;
 using std::vector;
 using std::make_pair;
 using std::numeric_limits;
+
 using boost::lexical_cast;
 
 #ifndef NO_CPP11
@@ -110,17 +111,14 @@ inline bool float_equal(
 }
 
 #ifdef __CUDACC__
-#  define CUDA_FUNC __host__ __device__
-#  define CUDA_KERNEL __global__
+#  define __cuda__ __host__ __device__
 #else
-#  define CUDA_FUNC
-#  define CUDA_KERNEL
-#  define CUDA_SHARED
+#  define __cuda__
 #endif
 
 const float SQRT2 = 1.4142135623731f;
-const int DX[8] = { 1,  1, -1, -1,  1, -1,  0,  0 };
-const int DY[8] = { 1, -1,  1, -1,  0,  0,  1, -1 };
-const float COST[8] = {SQRT2, SQRT2, SQRT2, SQRT2, 1, 1, 1, 1};
+const int DX[8] = { 1, -1,  0,  0,  1,  1, -1, -1, };
+const int DY[8] = { 0,  0,  1, -1,  1, -1,  1, -1, };
+const float COST[8] = { 1, 1, 1, 1, SQRT2, SQRT2, SQRT2, SQRT2, };
 
 #endif

@@ -4,7 +4,7 @@
 
 #include "utils.hpp"
 #include "pathway/pathway.hpp"
-#include "puzzle/puzzle.hpp"
+#include "puzzle/puzzle.cuh"
 #include "problem.hpp"
 
 const char *program_description =
@@ -118,8 +118,8 @@ int main(int argc, char *argv[])
         ("help,h", "Print usage message")
         ("pathway", "Solve pathway finding problem")
         ("puzzle", "Solve tile puzzle problem")
-        ("height,H", po::value<int>(), "Width of the problem")
-        ("width,W", po::value<int>(), "Height of the problem")
+        ("height,H", po::value<int>(), "Width of the problem pathway")
+        ("width,W", po::value<int>(), "Height of the problem pathway")
         ("input-module", po::value<string>()->default_value("custom"),
          "Choose how to generate the input data.\n"
          "For pathway finding:\n"
