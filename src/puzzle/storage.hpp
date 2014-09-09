@@ -8,7 +8,7 @@ class PuzzleStorage {
     __cuda__ PuzzleStorage(uint8_t input[N][N]);
     __cuda__ void decompose(uint8_t output[3][3]);
     __cuda__ int64_t hashValue() const;
-    bool operator==(const PuzzleStorage<3> &r) const;
+    __cuda__ bool operator==(const PuzzleStorage<3> &r) const;
 };
 
 template <int N>
@@ -20,7 +20,7 @@ void printStorage(const PuzzleStorage<N> &ps, const string &prefix)
         for (int i = 0; i < N; ++i) {
             cout << prefix;
             for (int j = 0; j < N; ++j)
-                cout << (int)buf[i][j] << " ";
+                printf("%5d", (int)buf[i][j]);
             cout << endl;
         }
     }
@@ -60,7 +60,7 @@ public:
     __cuda__ uint64_t hashValue() const {
         return bit;
     }
-    bool operator==(const PuzzleStorage<3> &r) const {
+    __cuda__ bool operator==(const PuzzleStorage<3> &r) const {
         return bit == r.bit;
     }
 
@@ -115,7 +115,7 @@ public:
         return bit;
     }
 
-    bool operator==(const PuzzleStorage<4> &r) const {
+    __cuda__ bool operator==(const PuzzleStorage<4> &r) const {
         return bit == r.bit;
     }
 
@@ -193,7 +193,7 @@ public:
         return (bit1 ^ bit2) + (bit2 << 2) + (bit1 << 1);
     }
 
-    bool operator==(const PuzzleStorage<5> &r) const {
+    __cuda__ bool operator==(const PuzzleStorage<5> &r) const {
         return bit1 == r.bit1 && bit2 == r.bit2;
     }
 

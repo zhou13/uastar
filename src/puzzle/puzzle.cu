@@ -3,7 +3,7 @@
 #include "puzzle/puzzle.cuh"
 
 #include "puzzle/CPU-solver.hpp"
-#include "puzzle/GPU-solver.hpp"
+#include "puzzle/GPU-solver.cuh"
 
 class PuzzlePrivate {
 public:
@@ -114,17 +114,17 @@ void Puzzle::cpuInitialize()
 
 void Puzzle::gpuInitialize()
 {
-    // switch (n) {
-    // case 3:
-    //     d->g3->initialize();
-    //     break;
-    // case 4:
-    //     d->g4->initialize();
-    //     break;
-    // case 5:
-    //     d->g5->initialize();
-    //     break;
-    // };
+    switch (n) {
+    case 3:
+        d->g3->initialize();
+        break;
+    case 4:
+        d->g4->initialize();
+        break;
+    case 5:
+        d->g5->initialize();
+        break;
+    };
 }
 
 void Puzzle::cpuSolve()
@@ -145,18 +145,18 @@ void Puzzle::cpuSolve()
 
 void Puzzle::gpuSolve()
 {
-    // switch (n) {
-    // case 3:
-    //     d->gpuSuccessful = d->g3->solve();
-    //     break;
-    // case 4:
-    //     d->gpuSuccessful = d->g4->solve();
-    //     break;
-    // case 5:
-    //     d->gpuSuccessful = d->g5->solve();
-    //     break;
-    // };
-    // d->cpuSolved = true;
+    switch (n) {
+    case 3:
+        d->gpuSuccessful = d->g3->solve();
+        break;
+    case 4:
+        d->gpuSuccessful = d->g4->solve();
+        break;
+    case 5:
+        d->gpuSuccessful = d->g5->solve();
+        break;
+    };
+    d->cpuSolved = true;
 }
 
 bool Puzzle::output()
@@ -212,7 +212,7 @@ bool Puzzle::output()
     }
 
     if (d->cpuSolved && d->gpuSolved) {
-        if (!float_equal(d->cpuOptimal, d->gpuOptimal))
+        if (d->cpuOptimal != d->gpuOptimal)
             return false;
     }
 

@@ -13,6 +13,7 @@ public:
 
     size_t size();
     void genDatabase(uint8_t out[]);
+    void fetchDatabase(uint8_t out[]);
 
     uint32_t encoding(const uint8_t in[]);
     void decoding(uint32_t code, uint8_t out[]);

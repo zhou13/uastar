@@ -91,7 +91,7 @@ bool CPUPathwaySolver::solve()
 
 void CPUPathwaySolver::getSolution(float *optimal, vector<int> *pathList)
 {
-    printf("\t\t\t Number of nodes expanded: %d\n", (int)globalList.size());
+    printf("\t\t\tNumber of nodes expanded: %d\n", (int)globalList.size());
     node_t *node = optimalNode;
     *optimal = node->dist;
     pathList->clear();

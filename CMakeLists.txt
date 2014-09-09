@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(uastar)
 
 find_package(CUDA REQUIRED)
-find_package(Boost COMPONENTS program_options system REQUIRED)
+find_package(Boost COMPONENTS program_options system filesystem REQUIRED)
 
 add_definitions("-std=c++1y")
 set(CUDA_NVCC_FLAGS_DEBUG ${CUDA_NVCC_FLAGS_DEBUG} -lineinfo -gencode arch=compute_35,code=sm_35 --ptxas-options -v )

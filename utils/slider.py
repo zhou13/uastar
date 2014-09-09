@@ -1,5 +1,6 @@
 #!/bin/env python3
 
+import os
 import sys
 import curses
 
@@ -66,7 +67,13 @@ def main(stdscr):
         elif c == ord('q'):
             return
         elif c == ord('s'):
-            with open('puzzle.txt', "w") as f:
+            filename = "puzzle" + str(width) + '-'
+            count = 1
+            suffix = '.txt'
+            while os.path.exists(filename + str(count) + suffix):
+                count += 1
+            filename = filename + str(count) + suffix
+            with open(filename, "w") as f:
                 for row in box:
                     for v in row:
                         f.write(str(v) + ' ')
@@ -74,7 +81,6 @@ def main(stdscr):
                 for c in seq:
                     f.write(c)
                 f.write('\n')
-
         else:
             pass
 

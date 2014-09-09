@@ -1,5 +1,6 @@
 #include "puzzle/database.hpp"
 #include "boost/dynamic_bitset.hpp"
+#include "boost/filesystem.hpp"
 
 #include <queue>
 #include <bitset>
@@ -19,8 +20,8 @@ PatternDatabase::PatternDatabase(int n, const vector<int> &tracked)
     for (int i = m_multiple.size() - 2; i >= 0; --i)
         m_multiple[i] *= m_multiple[i+1];
     for (int v : m_multiple)
-        cout << v << " ";
-    cout << endl;
+        dout << v << " ";
+    dout << endl;
 }
 
 PatternDatabase::~PatternDatabase()
@@ -49,6 +50,7 @@ void PatternDatabase::genDatabase(uint8_t out[])
     out[code] = 0;
     visited[code] = 1;
 
+    int count = 1;
     while (!q.empty()) {
         uint32_t code = q.front(); q.pop();
         decoding(code, conf);
@@ -67,12 +69,55 @@ void PatternDatabase::genDatabase(uint8_t out[])
                                 visited[ncode] = 1;
                                 q.push(ncode);
                                 out[ncode] = out[code] + 1;
+                                ++count;
+                                if (count % 10000000 == 0)
+                                    cout << "\t"
+                                         << count/1024/1024 << "M/"
+                                         << m_size/1024/1024 << "M" << endl;
                             }
                             std::swap(conf[id], conf[nid]);
                         }
                     }
                 }
             }
+    }
+}
+
+void PatternDatabase::fetchDatabase(uint8_t out[])
+{
+    string filename = "database_" + std::to_string(n);
+    for (int i = 0; i < (int)m_tracked.size(); ++i)
+        filename += "_" + std::to_string(m_tracked[i]);
+    filename += ".bin";
+
+    if (boost::filesystem::exists(filename)) {
+        FILE *fin = fopen(filename.c_str(), "rb");
+        if (!fin) {
+            cout << "Cannot read file " << filename << endl;
+            exit(1);
+        }
+        size_t read = fread(out, 1, m_size, fin);
+        if (read != m_size) {
+            boost::filesystem::remove(filename);
+            cout << filename << "is not intact" << endl;
+            exit(1);
+        }
+        fclose(fin);
+    } else {
+        cout << "\tGenerating pattern databse" << endl;
+        genDatabase(out);
+        FILE *fout = fopen(filename.c_str(), "wb");
+        if (!fout) {
+            cout << "Cannot write to file " << filename << endl;
+            exit(1);
+        }
+        size_t write = fwrite(out, 1, m_size, fout);
+        if (write != m_size) {
+            boost::filesystem::remove(filename);
+            cout << filename << "cannot be written (disk is full?)" << endl;
+            exit(1);
+        }
+        fclose(fout);
     }
 }
 
@@ -107,7 +152,7 @@ uint32_t PatternDatabase::encoding(const uint8_t in[])
         if (in[i]) {
             index[m_map[in[i]]] = i;
         }
-    vrank = index;
+    copy(index.begin(), index.end(), vrank.begin());
     for (int i = 0; i < (int)index.size(); ++i)
         for (int j = i+1; j < (int)index.size(); ++j)
             if (index[i] < index[j])

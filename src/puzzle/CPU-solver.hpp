@@ -109,7 +109,7 @@ public:
         for (int i = 0; i < dbCount; ++i) {
             PatternDatabase pd(N, tracked[i]);
             database[i].resize(pd.size());
-            pd.genDatabase(database[i].data());
+            pd.fetchDatabase(database[i].data());
 
             index[i].resize(tracked[i].size());
             multiple[i].reserve(tracked[i].size() + 1);
@@ -122,6 +122,10 @@ public:
 
             for (int j = tracked[i].size()-2; j >= 0; --j)
                 multiple[i][j] *= multiple[i][j+1];
+
+            for (int j = 0; j <= tracked[i].size(); ++j)
+                cout << multiple[i][j] << " ";
+            cout << endl;
         }
 
         node_t<N> *node = new node_t<N>;
@@ -155,6 +159,7 @@ public:
         uint8_t conf[N][N];
 
         int round = 0;
+        int numDeduplicate = 0;
         while (!openList.empty()) {
             dprintf(" ======Round %d=======\n", round);
             heap_t<N> now;
@@ -165,6 +170,7 @@ public:
 
             node_t<N> *node = now.node;
             if (node->ps == targetState) {
+                printf("\tNumber of nodes deduplicated: %d\n", numDeduplicate);
                 optimalNode = node;
                 return true;
             }
@@ -214,17 +220,21 @@ public:
                             heapItem.node = onode;
 
                             openList.push(heapItem);
-                        }
+                        } else
+                            numDeduplicate++;
                     }
                     std::swap(conf[x][y], conf[nx][ny]);
                 }
             }
             ++round;
         }
+
         return false;
     }
 
     void getSolution(int *optimal, vector<int> *pathList) {
+        printf("\tNumber of nodes expanded: %d\n", (int)closeList.size());
+
         *optimal = optimalNode->fValue;
 
         node_t<N> *curr = optimalNode;
@@ -299,8 +309,10 @@ private:
             for (int i = 0; i < (int)index[k].size(); ++i)
                  code += index[k][i] * multiple[k][i+1];
 
+            // dout << "\t\t" << (int)database[k][code] << " ";
             retn += database[k][code];
         }
+        dout << endl;
 
         return retn;
     }
