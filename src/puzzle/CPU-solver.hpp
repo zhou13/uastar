@@ -122,10 +122,6 @@ public:
 
             for (int j = tracked[i].size()-2; j >= 0; --j)
                 multiple[i][j] *= multiple[i][j+1];
-
-            for (int j = 0; j <= tracked[i].size(); ++j)
-                cout << multiple[i][j] << " ";
-            cout << endl;
         }
 
         node_t<N> *node = new node_t<N>;
@@ -170,7 +166,9 @@ public:
 
             node_t<N> *node = now.node;
             if (node->ps == targetState) {
-                printf("\tNumber of nodes deduplicated: %d\n", numDeduplicate);
+                printf("\t\tNumber of nodes deduplicated: %d\n", numDeduplicate);
+                printf("\t\tNumber of nodes expanded: %d\n", (int)closeList.size());
+
                 optimalNode = node;
                 return true;
             }
@@ -233,8 +231,6 @@ public:
     }
 
     void getSolution(int *optimal, vector<int> *pathList) {
-        printf("\tNumber of nodes expanded: %d\n", (int)closeList.size());
-
         *optimal = optimalNode->fValue;
 
         node_t<N> *curr = optimalNode;
@@ -309,10 +305,10 @@ private:
             for (int i = 0; i < (int)index[k].size(); ++i)
                  code += index[k][i] * multiple[k][i+1];
 
-            // dout << "\t\t" << (int)database[k][code] << " ";
+            // dout << "\t\t[" << code << "]" <<  (int)database[k][code] << " ";
             retn += database[k][code];
         }
-        dout << endl;
+        // dout << endl;
 
         return retn;
     }

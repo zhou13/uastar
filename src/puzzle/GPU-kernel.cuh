@@ -21,6 +21,7 @@
                 blockIdx.x, threadIdx.x, __FILE__, __LINE__ ); \
         return; \
     }
+
 // #define KERNEL_LOG
 
 using namespace mgpu;
@@ -41,8 +42,8 @@ template<int N>
 struct node_t {
     PuzzleStorage<N> ps;
     uint32_t prev;
-    uint8_t fValue;
-    uint8_t gValue;
+    uint16_t fValue;
+    uint16_t gValue;
 };
 
 template<int N>
@@ -61,19 +62,45 @@ __constant__ PuzzleStorage<3> d_target3;
 __constant__ PuzzleStorage<4> d_target4;
 __constant__ PuzzleStorage<5> d_target5;
 
-template<typename T>
-inline __device__ void swap(T &a, T &b)
-{
-    T t;
-    t = a;
-    a = b;
-    b = t;
-}
-
 template<int N>
 inline __device__ float inrange(int x, int y)
 {
     return 0 <= x && x < N && 0 <= y && y < N;
+}
+
+inline __device__ int computePatternHeuristic(
+    uint8_t database[], uint8_t index[], int indexCount, int offset, int mid)
+{
+    const int MULTIPLE[4][9] = {
+        { 362880, 40320, 5040, 720, 120, 24, 6, 2, 1 },
+        { 518918400, 32432400, 2162160, 154440, 11880, 990, 90, 9, 1 },
+        { 57657600, 3603600, 240240, 17160, 1320, 110, 10, 1, 0 },
+        { 127512000, 5100480, 212520, 9240, 420, 20, 1, 0, 0},
+    };
+
+    uint8_t oindex[10];
+#pragma unroll
+    for (int i = 0; i < indexCount; ++i)
+        oindex[i] = index[i];
+
+#pragma unroll
+    for (int i = 0; i < indexCount; ++i)
+#pragma unroll
+        for (int j = 0; j < indexCount; ++j)
+            if (j > i && oindex[i] < oindex[j])
+                --index[j];
+
+    uint32_t code = 0;
+#pragma unroll
+    for (int i = 0; i < indexCount; ++i)
+        code += index[i] * MULTIPLE[mid][i+1];
+
+#ifdef KERNEL_LOG
+    // printf("\t\t\t[%d]: Pattern database %d [%d] returns %d\n",
+    //        THREAD_ID, mid, code, database[offset + code]);
+#endif
+
+    return database[offset + code];
 }
 
 template<int N>
@@ -82,30 +109,6 @@ inline __device__ int computeHValue(
     uint8_t conf[N][N],
     uint8_t index[][N == 5 ? 6 : 8])
 {
-    const int DB_COUNT[6] = { 0, 0, 0, 1, 2, 4 };
-    const int DB_OFFSET[6][4] = {
-        { 0, 0, 0, 0 },
-        { 0, 0, 0, 0 },
-        { 0, 0, 0, 0 },
-        { 0, 0, 0, 0 },
-        { 0, 518918400, 0, 0 },
-        { 0, 127512000, 127512000 * 2, 127512000 * 3 },
-    };
-    const int INDEX_COUNT[6][4] = {
-        { 0, 0, 0, 0 },
-        { 0, 0, 0, 0 },
-        { 0, 0, 0, 0 },
-        { 8, 0, 0, 0 },
-        { 8, 7, 0, 0 },
-        { 6, 6, 6, 6 },
-    };
-    const int MULTIPLE[4][9] = {
-        { 362880, 40320, 5040, 720, 120, 24, 6, 2, 1 },
-        { 518918400, 32432400, 2162160, 154440, 11880, 990, 90, 9, 1 },
-        { 57657600, 3603600, 240240, 17160, 1320, 110, 10, 1, 0 },
-        { 127512000, 5100480, 212520, 9240, 420, 20, 1, 0, 0},
-    };
-
 #pragma unroll
     for (int i = 0; i < N; ++i)
 #pragma unroll
@@ -116,36 +119,16 @@ inline __device__ int computeHValue(
             }
 
     int retn = 0;
-#pragma unroll
-    for (int k = 0; k < DB_COUNT[N]; ++k) {
-        int oindex[10];
-#pragma unroll
-        for (int i = 0; i < INDEX_COUNT[N][k]; ++i)
-            oindex[i] = index[k][i];
-
-#pragma unroll
-        for (int i = 0; i < INDEX_COUNT[N][k]; ++i)
-#pragma unroll
-            for (int j = i+1; j < INDEX_COUNT[N][k]; ++j)
-                if (oindex[i] < oindex[j])
-                    --index[k][j];
-
-        int mid;
-        if (N == 3)
-            mid = 0;
-        else if (N == 4 && k == 0)
-            mid = 1;
-        else if (N == 4 && k == 1)
-            mid = 2;
-        else if (N == 5)
-            mid = 3;
-
-        uint32_t code = 0;
-#pragma unroll
-        for (int i = 0; i < INDEX_COUNT[N][k]; ++i)
-            code += index[k][i] * MULTIPLE[mid][i+1];
-
-        retn += database[DB_OFFSET[N][k] + code];
+    if (N == 3) {
+        retn += computePatternHeuristic(database, index[0], 8, 0, 0);
+    } else if (N == 4) {
+        retn += computePatternHeuristic(database, index[0], 8, 0, 1);
+        retn += computePatternHeuristic(database, index[1], 7, 518918400, 2);
+    } else if (N == 5) {
+        retn += computePatternHeuristic(database, index[0], 6, 127512000*0, 3);
+        retn += computePatternHeuristic(database, index[1], 6, 127512000*1, 3);
+        retn += computePatternHeuristic(database, index[2], 6, 127512000*2, 3);
+        retn += computePatternHeuristic(database, index[3], 6, 127512000*3, 3);
     }
 
     return retn;
@@ -154,12 +137,13 @@ inline __device__ int computeHValue(
 template<int N>
 inline __device__ void getEmptyTile(uint8_t conf[N][N], int *x, int *y)
 {
+#pragma unroll
     for (int i = 0; i < N; ++i)
+#pragma unroll
         for (int j = 0; j < N; ++j)
             if (conf[i][j] == 0) {
                 *x = i;
                 *y = j;
-                return;
             }
 }
 
@@ -257,6 +241,7 @@ __global__ void kExtractExpand(
 {
     __shared__ uint32_t s_optimalStep;
     __shared__ uint8_t s_index[NT][N==5 ? 4 : (N==4 ? 2 : 1)][N==5 ? 6 : 8];
+    __shared__ uint8_t s_conf[NT][N][N];
 
     __shared__ int s_nodeInsertCount;
     __shared__ int s_nodeInsertBase;
@@ -281,11 +266,16 @@ __global__ void kExtractExpand(
     bool working = (heapSize != 0);
 
     node_t<N> node;
-    uint8_t conf[N][N];
+    uint8_t (&conf)[N][N] = s_conf[tid];
 
     if (working) {
         topNode = heap[1];
         heap_t nowValue = heap[heapSize--];
+
+        atomicMin(&s_optimalStep, topNode.fValue);
+#ifdef KERNEL_LOG
+        printf("\t\t[%d] topNode.fValue = %d\n", gid, topNode.fValue);
+#endif
 
         int now = 1;
         int next;
@@ -307,8 +297,6 @@ __global__ void kExtractExpand(
         heap[now] = nowValue;
         g_heapSize[gid] = heapSize;
 
-        atomicMin(&s_optimalStep, topNode.fValue);
-
         // check solution
         node = g_nodes[topNode.addr];
         if (checkSolution<N>(node.ps)) {
@@ -318,13 +306,10 @@ __global__ void kExtractExpand(
         }
     }
 
-    const int DX[4] = { 1, -1,  0,  0 };
-    const int DY[4] = { 0,  0,  1, -1 };
-
     node_t<N> nnode[4];
     uint32_t addr[4];
     uint32_t hashValue[4];
-    bool found[4], insert[4];
+    bool work[4], found[4], insert[4];
 
     int nodeCount = 0, nodeIndex;
     int heapCount = 0, heapIndex;
@@ -334,19 +319,25 @@ __global__ void kExtractExpand(
 
         int x, y;
         getEmptyTile<N>(conf, &x, &y);
+
+        const int DX[4] = { 1, -1,  0,  0 };
+        const int DY[4] = { 0,  0,  1, -1 };
 #pragma unroll
         for (int k = 0; k < 4; ++k) {
             int nx = x + DX[k];
             int ny = y + DY[k];
 
+            work[k] = false;
             found[k] = false;
             insert[k] = true;
 
             if (inrange<N>(nx, ny)) {
+                work[k] = true;
+                swap(conf[x][y], conf[nx][ny]);
+
                 PuzzleStorage<N> nps = PuzzleStorage<N>(conf);
                 hashValue[k] = nps.hashValue() % M;
                 addr[k] = g_hash[hashValue[k]];
-
                 nnode[k].ps = nps;
                 nnode[k].gValue = node.gValue + 1;
                 nnode[k].fValue = nnode[k].gValue +
@@ -357,17 +348,23 @@ __global__ void kExtractExpand(
                     node_t<N> onode = g_nodes[addr[k]];
                     if (onode.ps == nps) {
                         found[k] = true;
-                        if (nnode[k].gValue < onode.gValue)
+                        if (nnode[k].gValue < onode.gValue) {
                             g_nodes[addr[k]] = nnode[k];
-                        else
+                        } else
                             insert[k] = false;
                     }
                 }
+                if (!found[k])
+                    ++nodeCount;
+                if (insert[k])
+                    ++heapCount;
+#ifdef KERNEL_LOG
+                printf("\t\t[%d] Gen node with hash %d (%d %d)\n",
+                       gid, hashValue[k], found[k], insert[k]);
+#endif
+
+                swap(conf[x][y], conf[nx][ny]);
             }
-            if (!found[k])
-                ++nodeCount;
-            if (insert[k])
-                ++heapCount;
         }
         nodeIndex = atomicAdd(&s_nodeInsertCount, nodeCount);
         heapIndex = atomicAdd(&s_heapInsertCount, heapCount);
@@ -384,6 +381,8 @@ __global__ void kExtractExpand(
         nodeCount = 0;
         heapCount = 0;
         for (int k = 0; k < 4; ++k) {
+            if (!work[k])
+                continue;
             if (!found[k]) {
                 addr[k] = s_nodeInsertBase + nodeIndex + nodeCount++;
                 g_nodes[addr[k]] = nnode[k];
@@ -404,9 +403,7 @@ __global__ void kExtractExpand(
         atomicMin(g_optimalStep, s_optimalStep);
     if (gid == 0) {
         int newHeapBeginIndex = *g_heapBeginIndex + *g_heapInsertSize;
-
         *g_heapBeginIndex = newHeapBeginIndex % (NB*NT);
-        *g_heapInsertSize = 0;
     }
 }
 
@@ -437,6 +434,10 @@ __global__ void kHeapInsert(
 
     for (int i = gid; i < heapInsertSize; i += NB*NT) {
         heap_t value = g_heapInsertList[i];
+#ifdef KERNEL_LOG
+        // printf("\t\t\t[%d]Push node:(%d, %d)\n",
+        //        gid, (int)value.fValue, value.addr);
+#endif
         int now = ++heapSize;
 
         while (now > 1) {
@@ -462,17 +463,46 @@ template<int N>
 __global__ void kFetchAnswer(
     node_t<N> g_nodes[],
 
-    uint32_t *lastAddr,
+    uint32_t lastAddr,
 
-    uint32_t answerList[],
+    int g_answerList[],
     int *g_answerSize
 )
 {
-    int count = 0;
-    int addr = *lastAddr;
+    uint32_t addr = lastAddr;
 
-    while (addr != UINT32_MAX) {
-        addr = g_nodes[addr].prev;
+    uint8_t cconf[N][N];
+    uint8_t pconf[N][N];
+
+    node_t<N> prev;
+    node_t<N> curr;
+
+    curr = g_nodes[addr];
+    addr = curr.prev;
+    prev = g_nodes[addr];
+
+    int cx, cy;
+    int px, py;
+    int count = 0;
+    for (;;) {
+        prev.ps.decompose(pconf);
+        curr.ps.decompose(cconf);
+
+        getEmptyTile(cconf, &cx, &cy);
+        getEmptyTile(pconf, &px, &py);
+
+        const int DX[4] = { 1, -1,  0,  0 };
+        const int DY[4] = { 0,  0,  1, -1 };
+
+        for (int i = 0; i < 4; ++i)
+            if (px + DX[i] == cx && py + DY[i] == cy)
+                g_answerList[count++] = i;
+
+        addr = prev.prev;
+        if (addr == UINT32_MAX)
+            break;
+        curr = prev;
+        prev = g_nodes[addr];
     }
 
     *g_answerSize = count;

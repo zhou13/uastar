@@ -17,9 +17,6 @@ const int NUM_BLOCK  = 13 * 3;
 const int NUM_THREAD = 192;
 const int NUM_TOTAL = NUM_BLOCK * NUM_THREAD;
 
-const int VALUE_PER_THREAD = 1;
-const int NUM_VALUE = NUM_TOTAL * VALUE_PER_THREAD;
-
 const int HEAP_CAPACITY = OPEN_LIST_SIZE / NUM_TOTAL;
 
 int div_up(int x, int y) { return (x-1) / y + 1; }
@@ -49,8 +46,7 @@ struct DeviceData {
     MGPU_MEM(heap_t) optimalNodes;
     MGPU_MEM(int) optimalNodesSize;
 
-    MGPU_MEM(uint32_t) lastAddr;
-    MGPU_MEM(uint32_t) answerList;
+    MGPU_MEM(int) answerList;
     MGPU_MEM(int) answerSize;
 
     typename mgpu::ContextPtr context;
@@ -68,20 +64,15 @@ public:
     void initialize() {
         int dbCount;
         vector< vector<int> > tracked;
-        vector< int2 > mapTracked;
-
-        vector<uint8_t> database;
 
         if (N == 3) {
             dbCount = 1;
             tracked.resize(dbCount);
-            database.resize(dbCount);
             for (int i = 1; i <= 8; ++i)
                 tracked[0].push_back(i);
         } else if (N == 4) {
             dbCount = 2;
             tracked.resize(dbCount);
-            database.resize(dbCount);
 
             tracked[0].push_back(1);
             tracked[0].push_back(2);
@@ -102,7 +93,6 @@ public:
         } else if (N == 5) {
             dbCount = 4;
             tracked.resize(dbCount);
-            database.resize(dbCount);
 
             tracked[0].push_back(3);
             tracked[0].push_back(4);
@@ -134,6 +124,8 @@ public:
         } else
             assert(false);
 
+        vector<int2> mapTracked;
+        vector<uint8_t> database;
         mapTracked.resize(N*N, make_int2(-1, -1));
         for (int i = 0; i < dbCount; ++i) {
             PatternDatabase pd(N, tracked[i]);
@@ -176,15 +168,14 @@ public:
         d->heapSize = d->context->template Fill<int>(NUM_TOTAL, 0);
         d->heapBeginIndex = d->context->template Fill<int>(1, 0);
 
-        d->heapInsertList = d->context->template Malloc<heap_t>(NUM_VALUE * 4);
+        d->heapInsertList = d->context->template Malloc<heap_t>(NUM_TOTAL * 4);
         d->heapInsertSize = d->context->template Fill<int>(1, 0);
 
         d->optimalStep = d->context->template Fill<uint32_t>(1, UINT32_MAX);
         d->optimalNodes = d->context->template Malloc<heap_t>(NUM_TOTAL);
         d->optimalNodesSize = d->context->template Fill<int>(1, 0);
 
-        d->lastAddr = d->context->template Malloc<uint32_t>(1);
-        d->answerList = d->context->template Malloc<uint32_t>(ANSWER_LIST_SIZE);
+        d->answerList = d->context->template Malloc<int>(ANSWER_LIST_SIZE);
         d->answerSize = d->context->template Fill<int>(1, 0);
 
         vector<uint8_t> state;
@@ -197,6 +188,9 @@ public:
             *d->openList,
             *d->heapSize
         );
+#ifdef KERNEL_LOG
+            cudaDeviceSynchronize();
+#endif
         dout << "\t\tGPU Initialization finishes" << endl;
     }
 
@@ -239,20 +233,21 @@ public:
                 vector<heap_t> optimalNodes;
                 d->optimalNodes->ToHost(optimalNodes, optimalNodesSize);
 
-                uint32_t optimalStep = d->optimalStep->Value();
                 for (size_t i = 0; i != optimalNodes.size(); ++i) {
-                    dprintf("\t\t\t optimalNodes[%d]: %d\n", (int)i, (int)optimalNodes[i].fValue);
+                    dprintf("\t\t\t optimalNodes's fValue: %d\n", (int)optimalNodes[i].fValue);
                     pq.push(optimalNodes[i]);
                 }
 
-                dprintf("\t\t\t pq.top(): %.d\n", pq.top().fValue);
-                if (pq.top().fValue <= optimalStep) {
-                    printf("\t\t\t Number of nodes expanded: %d\n", d->nodeSize->Value());
-                    m_optimalNodeAddr = pq.top().addr;
-                    m_optimalStep = pq.top().fValue;
-                    dprintf("\t\t\t Optimal nodes address: %d\n", m_optimalNodeAddr);
-                    return true;
-                }
+            }
+
+            uint32_t optimalStep = d->optimalStep->Value();
+            dprintf("\t\t\t Global optimal step: %d\n", optimalStep);
+            if (!pq.empty() && pq.top().fValue <= optimalStep) {
+                printf("\t\t\t Number of nodes expanded: %d\n", d->nodeSize->Value());
+                m_optimalNodeAddr = pq.top().addr;
+                m_optimalStep = pq.top().fValue;
+                dprintf("\t\t\t Optimal nodes address: %d\n", m_optimalNodeAddr);
+                return true;
             }
 
             dprintf("\t\tRound %d: kHeapInsert\n", round);
@@ -270,12 +265,25 @@ public:
                     *d->optimalStep,
                     *d->optimalNodesSize
                 );
+#ifdef KERNEL_LOG
+            cudaDeviceSynchronize();
+#endif
             int value = 0;
             d->heapInsertSize->FromHost(&value, 1);
         }
     }
 
     void getSolution(int *optimal, vector<int> *pathList) {
+        *optimal = m_optimalStep;
+        kFetchAnswer<N><<<1, 1>>>(
+            *d->nodes,
+            m_optimalNodeAddr,
+            *d->answerList,
+            *d->answerSize
+        );
+        int answerSize = d->answerSize->Value();
+        d->answerList->ToHost(*pathList, answerSize);
+        std::reverse(pathList->begin(), pathList->end());
     }
 
 private:

@@ -156,7 +156,7 @@ void Puzzle::gpuSolve()
         d->gpuSuccessful = d->g5->solve();
         break;
     };
-    d->cpuSolved = true;
+    d->gpuSolved = true;
 }
 
 bool Puzzle::output()

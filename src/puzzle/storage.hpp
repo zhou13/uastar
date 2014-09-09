@@ -26,6 +26,21 @@ void printStorage(const PuzzleStorage<N> &ps, const string &prefix)
     }
 }
 
+#ifdef __CUDACC__
+template <int N>
+__device__ void printStorageDevice(const PuzzleStorage<N> &ps, const char *prefix)
+{
+        uint8_t buf[N][N];
+        ps.decompose(buf);
+        for (int i = 0; i < N; ++i) {
+            printf(prefix);
+            for (int j = 0; j < N; ++j)
+                printf("%5d", (int)buf[i][j]);
+            printf("\n");
+        }
+}
+#endif
+
 template <>
 class PuzzleStorage<3> {
 public:
@@ -42,7 +57,7 @@ public:
             (input[2][1] << 28);
     }
 
-    __cuda__ void decompose(uint8_t output[3][3]) const {
+    inline __cuda__ void decompose(uint8_t output[3][3]) const {
         output[0][0] = (bit >> 0 ) & 15;
         output[0][1] = (bit >> 4 ) & 15;
         output[0][2] = (bit >> 8 ) & 15;
@@ -57,10 +72,10 @@ public:
             - output[2][0] - output[2][1];
     }
 
-    __cuda__ uint64_t hashValue() const {
+    inline __cuda__ uint64_t hashValue() const {
         return bit;
     }
-    __cuda__ bool operator==(const PuzzleStorage<3> &r) const {
+    inline __cuda__ bool operator==(const PuzzleStorage<3> &r) const {
         return bit == r.bit;
     }
 
@@ -92,7 +107,7 @@ public:
             ((uint64_t)input[3][3] << 60);
     }
 
-    __cuda__ void decompose(uint8_t output[4][4]) const {
+    inline __cuda__ void decompose(uint8_t output[4][4]) const {
         output[0][0] = (bit >> 0 ) & 15;
         output[0][1] = (bit >> 4 ) & 15;
         output[0][2] = (bit >> 8 ) & 15;
@@ -111,11 +126,11 @@ public:
         output[3][3] = (bit >> 60) & 15;
     }
 
-    __cuda__ uint64_t hashValue() const {
+    inline __cuda__ uint64_t hashValue() const {
         return bit;
     }
 
-    __cuda__ bool operator==(const PuzzleStorage<4> &r) const {
+    inline __cuda__ bool operator==(const PuzzleStorage<4> &r) const {
         return bit == r.bit;
     }
 
@@ -159,7 +174,7 @@ public:
             (((uint64_t)input[4][4] & 16) << 56);
     }
 
-    __cuda__ void decompose(uint8_t output[5][5]) const {
+    inline __cuda__ void decompose(uint8_t output[5][5]) const {
         output[0][0] = (bit1 >> 0 ) & 31;
         output[0][1] = (bit1 >> 5 ) & 31;
         output[0][2] = (bit1 >> 10) & 31;
@@ -189,11 +204,11 @@ public:
         output[4][4] = (bit1 >> 60 & 15) + (bit2 >> 56 & 16);
     }
 
-    __cuda__ uint64_t hashValue() const {
+    inline __cuda__ uint64_t hashValue() const {
         return (bit1 ^ bit2) + (bit2 << 2) + (bit1 << 1);
     }
 
-    __cuda__ bool operator==(const PuzzleStorage<5> &r) const {
+    inline __cuda__ bool operator==(const PuzzleStorage<5> &r) const {
         return bit1 == r.bit1 && bit2 == r.bit2;
     }
 

@@ -26,9 +26,6 @@ public:
         return n*n;
     }
     void initialState(vector<uint8_t> &data) {
-        for (int i = 0; i < (int)m_initialState.size(); ++i)
-            dout << m_initialState[i] << " ";
-        dout << endl;
         data = m_initialState;
     }
     int tileID(int x, int y) const {
