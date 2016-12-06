@@ -6,7 +6,7 @@ find_package(Boost COMPONENTS program_options system filesystem REQUIRED)
 
 add_definitions("-std=c++1y")
 set(CUDA_NVCC_FLAGS_DEBUG ${CUDA_NVCC_FLAGS_DEBUG} -lineinfo -gencode arch=compute_35,code=sm_35 --ptxas-options -v )
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -rdynamic -Wall -DDEBUG -fsanitize=address")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -rdynamic -Wall -DDEBUG ")
 set(CUDA_NVCC_FLAGS_RELEASE ${CUDA_NVCC_FLAGS_RELEASE} -O2 -gencode arch=compute_35,code=sm_35 --ptxas-options -v)
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
 
@@ -35,11 +35,11 @@ cuda_add_executable(
     ${moderngpu_source}
 )
 
-cuda_add_executable(
-    demo-sort
-    utils/modern-sort.cu
-    ${moderngpu_source}
-)
+#cuda_add_executable(
+#    demo-sort
+#    utils/modern-sort.cu
+#    ${moderngpu_source}
+#)
 
 target_link_libraries(
     uastar

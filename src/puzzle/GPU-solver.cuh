@@ -6,6 +6,10 @@
 #include "puzzle/puzzle.cuh"
 #include "puzzle/GPU-kernel.cuh"
 
+#ifndef UINT32_MAX
+#define UINT32_MAX (0xffffffff)
+#endif
+
 namespace gpusolver {
 
 const int OPEN_LIST_SIZE = 1000000;

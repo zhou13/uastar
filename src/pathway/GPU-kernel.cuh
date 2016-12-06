@@ -13,6 +13,10 @@
 #define THREAD_ID (threadIdx.x)
 #define GLOBAL_ID (THREAD_ID + NT * blockIdx.x)
 #define BLOCK_ID  (blockIdx.x)
+#
+#ifndef UINT32_MAX
+#define UINT32_MAX  (0xffffffff)
+#endif
 
 #define cudaAssert(X) \
     if ( !(X) ) { \

@@ -10,6 +10,10 @@
 #include "utils.hpp"
 #include "puzzle/storage.hpp"
 
+#ifndef UINT32_MAX
+#define UINT32_MAX (0xffffffff)
+#endif
+
 // Suppose we only use x dimension
 #define THREAD_ID (threadIdx.x)
 #define GLOBAL_ID (THREAD_ID + NT * blockIdx.x)
